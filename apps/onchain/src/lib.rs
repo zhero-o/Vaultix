@@ -458,12 +458,25 @@ impl VaultixEscrow {
         }
 
         let token_client = token::Client::new(&env, &escrow.token_address);
-        token_client.transfer_from(
-            &env.current_contract_address(),
-            &escrow.depositor,
-            &env.current_contract_address(),
-            &escrow.total_amount,
-        );
+        // Defensive checks to avoid host traps when the token contract would trap
+        // on transfer_from due to missing allowance or insufficient balance.
+        // Check depositor balance first.
+        let depositor_balance = token_client.balance(&escrow.depositor);
+        if depositor_balance < escrow.total_amount {
+            return Err(Error::InsufficientBalance);
+        }
+
+        // Check allowance granted to this contract (spender) by the depositor.
+        // If allowance is insufficient, return a TokenTransferFailed error instead
+        // of invoking transfer_from which would trap the host.
+        let spender = env.current_contract_address();
+        let allowance = token_client.allowance(&escrow.depositor, &spender);
+        if allowance < escrow.total_amount {
+            return Err(Error::TokenTransferFailed);
+        }
+
+        // Safe to call transfer_from now that basic preconditions hold.
+        token_client.transfer_from(&spender, &escrow.depositor, &spender, &escrow.total_amount);
 
         escrow.status = EscrowStatus::Active;
         env.storage().persistent().set(&storage_key, &escrow);

@@ -1712,6 +1712,8 @@ fn test_release_milestone_uses_global_fee_by_default() {
         &(env.ledger().timestamp() + 3600),
     );
 
+    // Approve contract to transfer depositor's tokens, then deposit
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // Release milestone using global fee (100 bps = 1%)
@@ -1765,6 +1767,9 @@ fn test_release_milestone_uses_token_fee_override() {
         &(env.ledger().timestamp() + 3600),
     );
 
+    // Approve contract to transfer depositor's tokens, then deposit
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // Release milestone - should use token fee (200 bps), not global (50 bps)
@@ -1822,6 +1827,9 @@ fn test_release_milestone_uses_escrow_fee_override() {
         &(env.ledger().timestamp() + 3600),
     );
 
+    // Approve contract to transfer depositor's tokens, then deposit
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // Release milestone - should use escrow fee (300 bps), not token (100 bps) or global (50 bps)
@@ -1875,6 +1883,9 @@ fn test_cancel_escrow_uses_token_fee_override() {
         &(env.ledger().timestamp() + 3600),
     );
 
+    // Approve contract to transfer depositor's tokens, then deposit
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // Cancel escrow - should use token fee (200 bps)
@@ -1995,6 +2006,9 @@ fn test_refund_expired_uses_escrow_fee_override() {
         &deadline,
     );
 
+    // Approve contract to transfer depositor's tokens, then deposit
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // FIX: Correct way to advance time in Soroban tests
@@ -2106,7 +2120,9 @@ fn test_zero_fee_valid() {
         &milestones,
         &(env.ledger().timestamp() + 3600),
     );
-
+    // Approve contract to transfer depositor's tokens, then deposit
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
     client.release_milestone(&escrow_id, &0);
 

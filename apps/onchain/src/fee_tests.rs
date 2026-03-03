@@ -143,6 +143,7 @@ fn test_release_milestone_uses_global_fee_by_default() {
 
     token_client.approve(&depositor, &contract_id, &10_000, &200);
     token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // Release milestone using global fee (100 bps = 1%)
@@ -196,6 +197,7 @@ fn test_release_milestone_uses_token_fee_override() {
         &(env.ledger().timestamp() + 3600),
     );
 
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     token_client.approve(&depositor, &contract_id, &10_000, &200);
     token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
@@ -257,6 +259,7 @@ fn test_release_milestone_uses_escrow_fee_override() {
 
     token_client.approve(&depositor, &contract_id, &10_000, &200);
     token_client.approve(&depositor, &contract_id, &10_000, &200);
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
 
     // Release milestone - should use escrow fee (300 bps), not token (100 bps) or global (50 bps)
@@ -313,6 +316,7 @@ fn test_fee_precedence_escrow_over_token_and_global() {
         &(env.ledger().timestamp() + 3600),
     );
 
+    token_client.approve(&depositor, &contract_id, &10_000, &200);
     token_client.approve(&depositor, &contract_id, &10_000, &200);
     client.deposit_funds(&escrow_id);
     client.release_milestone(&escrow_id, &0);
