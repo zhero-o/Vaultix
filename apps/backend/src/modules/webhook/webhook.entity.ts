@@ -7,16 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../user/entities/user.entity';
-
-export type WebhookEvent =
-  | 'escrow.created'
-  | 'escrow.funded'
-  | 'escrow.released'
-  | 'escrow.cancelled'
-  | 'escrow.disputed'
-  | 'escrow.resolved'
-  | 'condition.fulfilled'
-  | 'condition.confirmed';
+import type { WebhookEvent } from '../../types/webhook/webhook.types';
 
 @Entity('webhooks')
 export class Webhook {

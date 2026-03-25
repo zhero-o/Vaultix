@@ -33,6 +33,7 @@ import {
 import { FulfillConditionDto } from '../dto/fulfill-condition.dto';
 import { FileDisputeDto, ResolveDisputeDto } from '../dto/dispute.dto';
 import { FundEscrowDto } from '../dto/fund-escrow.dto';
+import { ExpireEscrowDto } from '../dto/expire-escrow.dto';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: { sub: string; walletAddress: string };
@@ -107,23 +108,18 @@ export class EscrowController {
     return this.escrowService.cancel(id, dto, userId, ipAddress);
   }
 
-@Post(':id/expire')
-@UseGuards(EscrowAccessGuard)
-async expire(
-  @Param('id') id: string,
-  @Body() dto: ExpireEscrowDto,
-  @Request() req: AuthenticatedRequest,
-) {
-  const userId = req.user.sub;
-  const ipAddress = req.ip || req.socket?.remoteAddress;
+  @Post(':id/expire')
+  @UseGuards(EscrowAccessGuard)
+  async expire(
+    @Param('id') id: string,
+    @Body() dto: ExpireEscrowDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user.sub;
+    const ipAddress = req.ip || req.socket?.remoteAddress;
 
-  return await this.escrowService.expire(
-    id,
-    dto,
-    userId,
-    ipAddress,
-  );
-}
+    return this.escrowService.expire(id, dto, userId, ipAddress);
+  }
 
   @Get(':id/events')
   @UseGuards(EscrowAccessGuard)

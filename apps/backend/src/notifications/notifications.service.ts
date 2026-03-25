@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   NotificationChannel,
   NotificationEventType,
@@ -14,6 +14,7 @@ import { PreferenceService } from './preference.service';
 
 @Injectable()
 export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
   private senders: Map<NotificationChannel, NotificationSender>;
 
   constructor(
@@ -74,12 +75,16 @@ export class NotificationService {
         }
 
         notification.status = NotificationStatus.SENT;
-      } catch {
+      } catch (error) {
         notification.retryCount += 1;
         notification.status =
           notification.retryCount > 3
             ? NotificationStatus.FAILED
             : NotificationStatus.PENDING;
+        this.logger.error(
+          `Failed to process notification ${notification.id}; retryCount=${notification.retryCount}`,
+          error instanceof Error ? error.stack : String(error),
+        );
       }
 
       await this.repo.save(notification);

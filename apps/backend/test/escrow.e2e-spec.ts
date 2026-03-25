@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -124,7 +125,8 @@ describe('Escrow (e2e)', () => {
       publicKey: arbitratorWalletAddress,
     });
 
-    arbitratorAccessToken = (verify3.body as { accessToken: string }).accessToken;
+    arbitratorAccessToken = (verify3.body as { accessToken: string })
+      .accessToken;
 
     const me3 = await request(httpServer)
       .get('/auth/me')
@@ -363,7 +365,9 @@ describe('Escrow (e2e)', () => {
       await createOverviewEscrow({ title: 'Overview Pagination 3' });
 
       const pageOneResponse = await request(httpServer)
-        .get('/escrows/overview?page=1&pageSize=2&sortBy=createdAt&sortOrder=desc')
+        .get(
+          '/escrows/overview?page=1&pageSize=2&sortBy=createdAt&sortOrder=desc',
+        )
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -409,7 +413,8 @@ describe('Escrow (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const createdSortBody = createdSortResponse.body as EscrowOverviewResponse;
+      const createdSortBody =
+        createdSortResponse.body as EscrowOverviewResponse;
       const createdIds = createdSortBody.data.map((item) => item.escrowId);
       expect(createdIds.indexOf(idOld)).toBeLessThan(createdIds.indexOf(idNew));
 
@@ -627,7 +632,10 @@ describe('Escrow (e2e)', () => {
     });
 
     it('should allow a seller to file a dispute with evidence', async () => {
-      const evidence = ['https://example.com/screenshot.png', 'ipfs://QmAbc123'];
+      const evidence = [
+        'https://example.com/screenshot.png',
+        'ipfs://QmAbc123',
+      ];
       const res = await request(httpServer)
         .post(`/escrows/${escrowId}/dispute`)
         .set('Authorization', `Bearer ${secondAccessToken}`)
@@ -721,7 +729,10 @@ describe('Escrow (e2e)', () => {
       await request(httpServer)
         .post(`/escrows/${escrowId}/dispute`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ reason: 'Disputed delivery', evidence: ['https://proof.example.com'] });
+        .send({
+          reason: 'Disputed delivery',
+          evidence: ['https://proof.example.com'],
+        });
     });
 
     it('should return dispute details for the filing party (buyer)', async () => {
@@ -779,7 +790,9 @@ describe('Escrow (e2e)', () => {
           parties: [{ userId: secondUserId, role: PartyRole.SELLER }],
         });
       const outsiderId = (outsiderRes.body as EscrowResponse).id;
-      await escrowRepository.update(outsiderId, { status: EscrowStatus.ACTIVE });
+      await escrowRepository.update(outsiderId, {
+        status: EscrowStatus.ACTIVE,
+      });
       await request(httpServer)
         .post(`/escrows/${outsiderId}/dispute`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -813,7 +826,9 @@ describe('Escrow (e2e)', () => {
       const body = res.body as DisputeResponse;
       expect(body.status).toBe('resolved');
       expect(body.outcome).toBe('released_to_seller');
-      expect(body.resolutionNotes).toBe('Seller provided valid proof of delivery');
+      expect(body.resolutionNotes).toBe(
+        'Seller provided valid proof of delivery',
+      );
       expect(body.resolvedByUserId).toBe(arbitratorUserId);
       expect(body.resolvedAt).not.toBeNull();
     });
@@ -856,7 +871,10 @@ describe('Escrow (e2e)', () => {
       await request(httpServer)
         .post(`/escrows/${escrowId}/dispute/resolve`)
         .set('Authorization', `Bearer ${arbitratorAccessToken}`)
-        .send({ outcome: 'released_to_seller', resolutionNotes: 'Seller wins' });
+        .send({
+          outcome: 'released_to_seller',
+          resolutionNotes: 'Seller wins',
+        });
 
       const escrowRes = await request(httpServer)
         .get(`/escrows/${escrowId}`)
@@ -884,7 +902,10 @@ describe('Escrow (e2e)', () => {
       await request(httpServer)
         .post(`/escrows/${escrowId}/dispute/resolve`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ outcome: 'released_to_seller', resolutionNotes: 'Buyer self-resolving' })
+        .send({
+          outcome: 'released_to_seller',
+          resolutionNotes: 'Buyer self-resolving',
+        })
         .expect(403);
     });
 
@@ -892,7 +913,10 @@ describe('Escrow (e2e)', () => {
       await request(httpServer)
         .post(`/escrows/${escrowId}/dispute/resolve`)
         .set('Authorization', `Bearer ${secondAccessToken}`)
-        .send({ outcome: 'refunded_to_buyer', resolutionNotes: 'Seller self-resolving' })
+        .send({
+          outcome: 'refunded_to_buyer',
+          resolutionNotes: 'Seller self-resolving',
+        })
         .expect(403);
     });
 
@@ -922,14 +946,20 @@ describe('Escrow (e2e)', () => {
       await request(httpServer)
         .post(`/escrows/${escrowId}/dispute/resolve`)
         .set('Authorization', `Bearer ${arbitratorAccessToken}`)
-        .send({ outcome: 'released_to_seller', resolutionNotes: 'First resolution' })
+        .send({
+          outcome: 'released_to_seller',
+          resolutionNotes: 'First resolution',
+        })
         .expect(201);
 
       // Second attempt: escrow is no longer DISPUTED → 400
       await request(httpServer)
         .post(`/escrows/${escrowId}/dispute/resolve`)
         .set('Authorization', `Bearer ${arbitratorAccessToken}`)
-        .send({ outcome: 'refunded_to_buyer', resolutionNotes: 'Second attempt' })
+        .send({
+          outcome: 'refunded_to_buyer',
+          resolutionNotes: 'Second attempt',
+        })
         .expect(400);
     });
   });

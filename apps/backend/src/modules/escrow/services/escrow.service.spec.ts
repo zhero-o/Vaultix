@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
@@ -7,7 +7,11 @@ import { Escrow, EscrowStatus, EscrowType } from '../entities/escrow.entity';
 import { Party, PartyRole, PartyStatus } from '../entities/party.entity';
 import { Condition, ConditionType } from '../entities/condition.entity';
 import { EscrowEvent } from '../entities/escrow-event.entity';
-import { Dispute, DisputeStatus, DisputeOutcome } from '../entities/dispute.entity';
+import {
+  Dispute,
+  DisputeStatus,
+  DisputeOutcome,
+} from '../entities/dispute.entity';
 import { FulfillConditionDto } from '../dto/fulfill-condition.dto';
 import {
   BadRequestException,
@@ -301,10 +305,10 @@ describe('EscrowService', () => {
 
   describe('fund', () => {
     const walletAddress = 'GABC123';
-  
+
     it('should fund escrow when creator and amount match', async () => {
       const fundedAt = new Date();
-  
+
       escrowRepository.findOne
         .mockResolvedValueOnce({ ...mockEscrow, amount: 100 } as Escrow)
         .mockResolvedValueOnce({
@@ -313,38 +317,40 @@ describe('EscrowService', () => {
           stellarTxHash: 'mock-fund-tx-hash',
           fundedAt,
         } as Escrow);
-  
-      escrowRepository.update.mockResolvedValue({ affected: 1 } as UpdateResult);
+
+      escrowRepository.update.mockResolvedValue({
+        affected: 1,
+      } as UpdateResult);
       eventRepository.create.mockReturnValue({} as EscrowEvent);
       eventRepository.save.mockResolvedValue({} as EscrowEvent);
-  
+
       const result: Escrow = await service.fund(
         'escrow-123',
         { amount: 100 },
         'user-123',
         walletAddress,
       );
-  
+
       expect(escrowRepository.update).toHaveBeenCalledTimes(1);
-  
+
       const updateCall = escrowRepository.update.mock.calls[0][1];
-  
+
       expect(updateCall).toEqual(
         expect.objectContaining({
           stellarTxHash: 'mock-fund-tx-hash',
           status: EscrowStatus.ACTIVE,
         }),
       );
-  
+
       expect(updateCall.fundedAt).toBeInstanceOf(Date);
-  
+
       expect(eventRepository.save).toHaveBeenCalled();
       expect(result.status).toBe(EscrowStatus.ACTIVE);
     });
-  
+
     it('should throw ForbiddenException when non-buyer attempts to fund', async () => {
       escrowRepository.findOne.mockResolvedValue(mockEscrow as Escrow);
-  
+
       await expect(
         service.fund(
           'escrow-123',
@@ -354,52 +360,37 @@ describe('EscrowService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
     });
-  
+
     it('should throw BadRequestException when status is not pending', async () => {
       escrowRepository.findOne.mockResolvedValue({
         ...mockEscrow,
         status: EscrowStatus.ACTIVE,
       } as Escrow);
-  
+
       await expect(
-        service.fund(
-          'escrow-123',
-          { amount: 100 },
-          'user-123',
-          walletAddress,
-        ),
+        service.fund('escrow-123', { amount: 100 }, 'user-123', walletAddress),
       ).rejects.toThrow(BadRequestException);
     });
-  
+
     it('should throw BadRequestException when amount does not match', async () => {
       escrowRepository.findOne.mockResolvedValue({
         ...mockEscrow,
         amount: 100,
       } as Escrow);
-  
+
       await expect(
-        service.fund(
-          'escrow-123',
-          { amount: 50 },
-          'user-123',
-          walletAddress,
-        ),
+        service.fund('escrow-123', { amount: 50 }, 'user-123', walletAddress),
       ).rejects.toThrow(BadRequestException);
     });
-  
+
     it('should throw BadRequestException when already funded', async () => {
       escrowRepository.findOne.mockResolvedValue({
         ...mockEscrow,
         stellarTxHash: 'existing-hash',
       } as Escrow);
-  
+
       await expect(
-        service.fund(
-          'escrow-123',
-          { amount: 100 },
-          'user-123',
-          walletAddress,
-        ),
+        service.fund('escrow-123', { amount: 100 }, 'user-123', walletAddress),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -548,6 +539,8 @@ describe('EscrowService', () => {
       expect(result.data).toEqual([]);
       expect(qb.offset).toHaveBeenCalledWith(10);
       expect(qb.limit).toHaveBeenCalledWith(5);
+    });
+  });
   // ---------------------------------------------------------------------------
   // Dispute management
   // ---------------------------------------------------------------------------
@@ -592,19 +585,19 @@ describe('EscrowService', () => {
     it('should allow a buyer to file a dispute and transition escrow to DISPUTED', async () => {
       escrowRepository.findOne.mockResolvedValue(activeEscrowWithParties());
       disputeRepository.findOne.mockResolvedValue(null);
-      escrowRepository.update.mockResolvedValue({ affected: 1 } as UpdateResult);
-      disputeRepository.create.mockReturnValue(mockDispute() as Dispute);
-      disputeRepository.save.mockResolvedValue(mockDispute() as Dispute);
+      escrowRepository.update.mockResolvedValue({
+        affected: 1,
+      } as UpdateResult);
+      disputeRepository.create.mockReturnValue(mockDispute());
+      disputeRepository.save.mockResolvedValue(mockDispute());
       // Final findOne to return with relations
       disputeRepository.findOne
         .mockResolvedValueOnce(null) // duplicate-check returns null
-        .mockResolvedValueOnce(mockDispute() as Dispute); // final fetch
+        .mockResolvedValueOnce(mockDispute()); // final fetch
 
-      const result = await service.fileDispute(
-        'escrow-123',
-        'buyer-id',
-        { reason: 'Item not delivered' },
-      );
+      const result = await service.fileDispute('escrow-123', 'buyer-id', {
+        reason: 'Item not delivered',
+      });
 
       expect(escrowRepository.update).toHaveBeenCalledWith('escrow-123', {
         status: EscrowStatus.DISPUTED,
@@ -617,16 +610,17 @@ describe('EscrowService', () => {
       escrowRepository.findOne.mockResolvedValue(activeEscrowWithParties());
       disputeRepository.findOne
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(mockDispute({ filedByUserId: 'seller-id' }) as Dispute);
-      escrowRepository.update.mockResolvedValue({ affected: 1 } as UpdateResult);
-      disputeRepository.create.mockReturnValue(mockDispute() as Dispute);
-      disputeRepository.save.mockResolvedValue(mockDispute() as Dispute);
+        .mockResolvedValueOnce(mockDispute({ filedByUserId: 'seller-id' }));
+      escrowRepository.update.mockResolvedValue({
+        affected: 1,
+      } as UpdateResult);
+      disputeRepository.create.mockReturnValue(mockDispute());
+      disputeRepository.save.mockResolvedValue(mockDispute());
 
-      const result = await service.fileDispute(
-        'escrow-123',
-        'seller-id',
-        { reason: 'Payment not received', evidence: ['https://example.com/proof'] },
-      );
+      const result = await service.fileDispute('escrow-123', 'seller-id', {
+        reason: 'Payment not received',
+        evidence: ['https://example.com/proof'],
+      });
 
       expect(result).toBeDefined();
       expect(escrowRepository.update).toHaveBeenCalledWith('escrow-123', {
@@ -656,7 +650,7 @@ describe('EscrowService', () => {
 
     it('should throw ConflictException when a dispute already exists', async () => {
       escrowRepository.findOne.mockResolvedValue(activeEscrowWithParties());
-      disputeRepository.findOne.mockResolvedValue(mockDispute() as Dispute);
+      disputeRepository.findOne.mockResolvedValue(mockDispute());
 
       await expect(
         service.fileDispute('escrow-123', 'buyer-id', { reason: 'Duplicate' }),
@@ -666,7 +660,7 @@ describe('EscrowService', () => {
 
   describe('getDispute', () => {
     it('should return the dispute for an escrow', async () => {
-      disputeRepository.findOne.mockResolvedValue(mockDispute() as Dispute);
+      disputeRepository.findOne.mockResolvedValue(mockDispute());
 
       const result = await service.getDispute('escrow-123');
 
@@ -697,19 +691,27 @@ describe('EscrowService', () => {
         activeEscrowWithParties({ status: EscrowStatus.DISPUTED }),
       );
       disputeRepository.findOne
-        .mockResolvedValueOnce(mockDispute() as Dispute) // getDispute call
-        .mockResolvedValueOnce(mockDispute({ // final fetch with relations
-          status: DisputeStatus.RESOLVED,
-          outcome: DisputeOutcome.RELEASED_TO_SELLER,
-          resolvedByUserId: 'arbitrator-id',
-        }) as Dispute);
-      disputeRepository.save.mockResolvedValue(mockDispute() as Dispute);
-      escrowRepository.update.mockResolvedValue({ affected: 1 } as UpdateResult);
+        .mockResolvedValueOnce(mockDispute()) // getDispute call
+        .mockResolvedValueOnce(
+          mockDispute({
+            // final fetch with relations
+            status: DisputeStatus.RESOLVED,
+            outcome: DisputeOutcome.RELEASED_TO_SELLER,
+            resolvedByUserId: 'arbitrator-id',
+          }),
+        );
+      disputeRepository.save.mockResolvedValue(mockDispute());
+      escrowRepository.update.mockResolvedValue({
+        affected: 1,
+      } as UpdateResult);
 
       const result = await service.resolveDispute(
         'escrow-123',
         'arbitrator-id',
-        { outcome: DisputeOutcome.RELEASED_TO_SELLER, resolutionNotes: 'Seller delivered' },
+        {
+          outcome: DisputeOutcome.RELEASED_TO_SELLER,
+          resolutionNotes: 'Seller delivered',
+        },
       );
 
       expect(escrowRepository.update).toHaveBeenCalledWith('escrow-123', {
@@ -723,19 +725,22 @@ describe('EscrowService', () => {
         activeEscrowWithParties({ status: EscrowStatus.DISPUTED }),
       );
       disputeRepository.findOne
-        .mockResolvedValueOnce(mockDispute() as Dispute)
-        .mockResolvedValueOnce(mockDispute({
-          status: DisputeStatus.RESOLVED,
-          outcome: DisputeOutcome.REFUNDED_TO_BUYER,
-        }) as Dispute);
-      disputeRepository.save.mockResolvedValue(mockDispute() as Dispute);
-      escrowRepository.update.mockResolvedValue({ affected: 1 } as UpdateResult);
+        .mockResolvedValueOnce(mockDispute())
+        .mockResolvedValueOnce(
+          mockDispute({
+            status: DisputeStatus.RESOLVED,
+            outcome: DisputeOutcome.REFUNDED_TO_BUYER,
+          }),
+        );
+      disputeRepository.save.mockResolvedValue(mockDispute());
+      escrowRepository.update.mockResolvedValue({
+        affected: 1,
+      } as UpdateResult);
 
-      await service.resolveDispute(
-        'escrow-123',
-        'arbitrator-id',
-        { outcome: DisputeOutcome.REFUNDED_TO_BUYER, resolutionNotes: 'No delivery' },
-      );
+      await service.resolveDispute('escrow-123', 'arbitrator-id', {
+        outcome: DisputeOutcome.REFUNDED_TO_BUYER,
+        resolutionNotes: 'No delivery',
+      });
 
       expect(escrowRepository.update).toHaveBeenCalledWith('escrow-123', {
         status: EscrowStatus.CANCELLED,
@@ -747,20 +752,29 @@ describe('EscrowService', () => {
         activeEscrowWithParties({ status: EscrowStatus.DISPUTED }),
       );
       disputeRepository.findOne
-        .mockResolvedValueOnce(mockDispute() as Dispute)
-        .mockResolvedValueOnce(mockDispute({
-          status: DisputeStatus.RESOLVED,
-          outcome: DisputeOutcome.SPLIT,
-          sellerPercent: 60,
-          buyerPercent: 40,
-        }) as Dispute);
-      disputeRepository.save.mockResolvedValue(mockDispute() as Dispute);
-      escrowRepository.update.mockResolvedValue({ affected: 1 } as UpdateResult);
+        .mockResolvedValueOnce(mockDispute())
+        .mockResolvedValueOnce(
+          mockDispute({
+            status: DisputeStatus.RESOLVED,
+            outcome: DisputeOutcome.SPLIT,
+            sellerPercent: 60,
+            buyerPercent: 40,
+          }),
+        );
+      disputeRepository.save.mockResolvedValue(mockDispute());
+      escrowRepository.update.mockResolvedValue({
+        affected: 1,
+      } as UpdateResult);
 
       const result = await service.resolveDispute(
         'escrow-123',
         'arbitrator-id',
-        { outcome: DisputeOutcome.SPLIT, resolutionNotes: 'Partial', sellerPercent: 60, buyerPercent: 40 },
+        {
+          outcome: DisputeOutcome.SPLIT,
+          resolutionNotes: 'Partial',
+          sellerPercent: 60,
+          buyerPercent: 40,
+        },
       );
 
       expect(result.outcome).toBe(DisputeOutcome.SPLIT);
@@ -795,7 +809,7 @@ describe('EscrowService', () => {
         activeEscrowWithParties({ status: EscrowStatus.DISPUTED }),
       );
       disputeRepository.findOne.mockResolvedValue(
-        mockDispute({ status: DisputeStatus.RESOLVED }) as Dispute,
+        mockDispute({ status: DisputeStatus.RESOLVED }),
       );
 
       await expect(
@@ -810,7 +824,7 @@ describe('EscrowService', () => {
       escrowRepository.findOne.mockResolvedValue(
         activeEscrowWithParties({ status: EscrowStatus.DISPUTED }),
       );
-      disputeRepository.findOne.mockResolvedValue(mockDispute() as Dispute);
+      disputeRepository.findOne.mockResolvedValue(mockDispute());
 
       await expect(
         service.resolveDispute('escrow-123', 'arbitrator-id', {
@@ -824,7 +838,7 @@ describe('EscrowService', () => {
       escrowRepository.findOne.mockResolvedValue(
         activeEscrowWithParties({ status: EscrowStatus.DISPUTED }),
       );
-      disputeRepository.findOne.mockResolvedValue(mockDispute() as Dispute);
+      disputeRepository.findOne.mockResolvedValue(mockDispute());
 
       await expect(
         service.resolveDispute('escrow-123', 'arbitrator-id', {
@@ -969,7 +983,7 @@ describe('EscrowService', () => {
       );
 
       expect(result.isMet).toBe(true);
-      expect(conditionRepository.save).not.toHaveBeenCalled();
+      expect(conditionRepository.save).toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException if non-buyer tries to confirm', async () => {
@@ -1008,7 +1022,10 @@ describe('EscrowService', () => {
       conditionRepository.findOne.mockResolvedValue(
         confirmedCondition as Condition,
       );
+
+      await expect(
+        service.confirmCondition('escrow-123', 'condition-123', 'buyer-123'),
+      ).resolves.toEqual(confirmedCondition);
     });
   });
-}); // Close the 'it' block
-}); // Close the 'describe' block for confirmCondition
+});

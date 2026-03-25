@@ -3,6 +3,7 @@ export type WebhookEvent =
   | 'escrow.funded'
   | 'escrow.released'
   | 'escrow.cancelled'
+  | 'escrow.expired'
   | 'escrow.disputed'
   | 'escrow.resolved'
   | 'condition.fulfilled'
