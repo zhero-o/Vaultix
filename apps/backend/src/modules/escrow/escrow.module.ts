@@ -21,7 +21,6 @@ import { User } from '../user/entities/user.entity';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([
       Escrow,
       Party,
