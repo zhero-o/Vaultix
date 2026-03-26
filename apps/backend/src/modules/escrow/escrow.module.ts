@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
 import { Escrow } from './entities/escrow.entity';
 import { Party } from './entities/party.entity';
 import { Condition } from './entities/condition.entity';
